@@ -1,0 +1,32 @@
+{
+    "name": "playwright-sample",
+    "version": "1.0.0",
+    "description": "Sample Playwright project",
+    "main": "index.js",
+    "scripts": {
+        "test": "npx playwright test",
+        "test:headed": "npx playwright test --headed",
+        "test:ui": "npx playwright test --ui",
+        "test:debug": "npx playwright test --debug",
+        "test:chrome": "npx playwright test --project=chromium",
+        "test:firefox": "npx playwright test --project=firefox",
+        "test:safari": "npx playwright test --project=webkit",
+        "test:mobile": "npx playwright test --project=Mobile Chrome",
+        "report": "npx playwright show-report",
+        "codegen": "npx playwright codegen",
+        "install-deps": "npx playwright install --with-deps"
+    },
+    "keywords": [
+        "playwright",
+        "testing",
+        "automation"
+    ],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/node": "^24.2.1"
+    },
+    "dependencies": {
+        "@playwright/test": "^1.54.2"
+    }
+}
