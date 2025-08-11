@@ -36,20 +36,50 @@ pipeline {
         FORCE_COLOR = '1'
     }
 
-    tools {
-        nodejs "${NODE_VERSION}"
-    }
-
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
                 script {
-                    env.BUILD_TIMESTAMP = sh(returnStdout: true, script: 'date "+%Y-%m-%d_%H-%M-%S"').trim()
-                    env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    if (isUnix()) {
+                        env.BUILD_TIMESTAMP = sh(returnStdout: true, script: 'date "+%Y-%m-%d_%H-%M-%S"').trim()
+                        env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    } else {
+                        env.BUILD_TIMESTAMP = bat(returnStdout: true, script: 'echo %date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%-%time:~3,2%-%time:~6,2%').trim()
+                        env.GIT_COMMIT_SHORT = bat(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    }
                 }
                 echo "Build started at: ${env.BUILD_TIMESTAMP}"
                 echo "Git commit: ${env.GIT_COMMIT_SHORT}"
+            }
+        }
+
+        stage('Setup Node.js') {
+            steps {
+                script {
+                    // Install Node.js if not available
+                    if (isUnix()) {
+                        sh '''
+                            # Check if node is available
+                            if ! command -v node &> /dev/null; then
+                                echo "Node.js not found, installing..."
+                                curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+                                sudo apt-get install -y nodejs
+                            fi
+                            echo "Node version:"
+                            node --version
+                            echo "NPM version:"
+                            npm --version
+                        '''
+                    } else {
+                        bat '''
+                            echo "Node version:"
+                            node --version
+                            echo "NPM version:"
+                            npm --version
+                        '''
+                    }
+                }
             }
         }
 
@@ -60,19 +90,11 @@ pipeline {
                         script {
                             if (isUnix()) {
                                 sh '''
-                                    echo "Node version:"
-                                    node --version
-                                    echo "NPM version:"
-                                    npm --version
                                     echo "Installing dependencies..."
                                     npm ci --silent
                                 '''
                             } else {
                                 bat '''
-                                    echo "Node version:"
-                                    node --version
-                                    echo "NPM version:"
-                                    npm --version
                                     echo "Installing dependencies..."
                                     npm ci --silent
                                 '''
@@ -122,7 +144,7 @@ pipeline {
             parallel {
                 stage('Lint Code') {
                     when {
-                        not { params.HEADED }
+                        expression { !params.HEADED }
                     }
                     steps {
                         script {
@@ -322,10 +344,8 @@ pipeline {
         
         failure {
             echo "❌ Build failed!"
-            script {
-                // Send failure notification (customize as needed)
-                // slackSend(color: 'danger', message: "❌ Playwright build failed for ${env.JOB_NAME} - ${env.BUILD_NUMBER}")
-            }
+            // Send failure notification (customize as needed)
+            // slackSend(color: 'danger', message: "❌ Playwright build failed for ${env.JOB_NAME} - ${env.BUILD_NUMBER}")
         }
         
         aborted {
